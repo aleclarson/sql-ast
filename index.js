@@ -223,7 +223,9 @@ function parse(input, opts = {}) {
       flag(stmt, 'TEMPORARY');
       next(is('word', stmt.what), true);
       flag(stmt, 'IF EXISTS');
-      stmt.names = [];
+      stmt.names = [
+        next(isWordOrIdent, true).value,
+      ];
       let tok; while (tok = next(isWordOrIdent)) {
         stmt.names.push(tok.value);
       }
