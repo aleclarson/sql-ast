@@ -52,9 +52,11 @@ function parse(input, opts = {}) {
         if (isRightParen(tok)) return tok;
 
         if (isWord(tok)) {
-          let val = uc(tok.value);
-          let isPrimary = val == 'PRIMARY';
-          let isUnique = isPrimary || val == 'UNIQUE';
+          let val = uc(tok.value),
+              start = tok.offset,
+              isPrimary = val == 'PRIMARY',
+              isUnique = isPrimary || val == 'UNIQUE';
+
           if (isUnique) {
             tok = toks.next();
             val = isWord(tok) ? uc(tok.value) : null;
@@ -98,6 +100,8 @@ function parse(input, opts = {}) {
               __proto__: AST.Index.prototype,
               name,
               columns,
+              start,
+              end: toks.cursor,
             });
             return;
           }
