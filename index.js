@@ -384,8 +384,8 @@ function parse(input, opts = {}) {
     return (tok) => {
       if (tok.type == 'word' && uc(tok.value) == arr[i++]) {
         if (i == arr.length) return true;
-      } else if (i == 0) return false;
-      wtf(tok, 'Unexpected ' + inspect(tok));
+      } else if (i == 0) { return false;
+      } else wtf(tok, 'Unexpected ' + inspect(tok));
     };
   }
 
