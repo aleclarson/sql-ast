@@ -88,7 +88,7 @@ function parse(input, opts = {}) {
               else if (isComma(tok)) {
                 let tok = toks.peek();
                 if (!isWordOrIdent(tok)) {
-                  wtf(tok, 'Unexpected token ' + uc(tok.type));
+                  wtf(tok, 'Unexpected ' + inspect(tok));
                 }
               }
             });
@@ -106,7 +106,7 @@ function parse(input, opts = {}) {
           }
         }
         else if (!isIdent(tok)) {
-          wtf(tok, 'Unexpected token ' + uc(tok.type));
+          wtf(tok, 'Unexpected ' + inspect(tok));
         }
 
         let name = tok.value;
@@ -159,7 +159,7 @@ function parse(input, opts = {}) {
           }
           next(isAssign, true);
           stmt.attrs[attr] = next(isWordOrLiteral, true).value;
-        } else wtf(tok, 'Unexpected token ' + uc(tok.type));
+        } else wtf(tok, 'Unexpected ' + inspect(tok));
       });
     },
     INSERT_VALUES: () => {
@@ -248,7 +248,7 @@ function parse(input, opts = {}) {
     }
   }
 
-  next(tok => wtf(tok, 'Unexpected token ' + uc(tok.type)));
+  next(tok => wtf(tok, 'Unexpected ' + inspect(tok)));
   return stmts;
 
   //
@@ -341,7 +341,7 @@ function parse(input, opts = {}) {
       if (tok.type == 'word' && uc(tok.value) == arr[i++]) {
         if (i == arr.length) return true;
       } else if (i == 0) return false;
-      wtf(tok, 'Unexpected token ' + uc(tok.type));
+      wtf(tok, 'Unexpected ' + inspect(tok));
     };
   }
 
@@ -350,7 +350,7 @@ function parse(input, opts = {}) {
     let tok = toks.peek();
     if (tok) {
       if (pred(tok)) return toks.next();
-      return !required ? null : wtf(tok, 'Unexpected token ' + uc(tok.type));
+      return !required ? null : wtf(tok, 'Unexpected ' + inspect(tok));
     }
     return !required ? null : wtf(null, 'Unexpected EOF');
   }
@@ -393,4 +393,22 @@ function genArray(fn, ctx) {
   let val, arr = [];
   while (val = fn.call(ctx)) arr.push(val);
   return arr;
+}
+
+// For human-readable error messages
+function inspect(tok) {
+  switch (tok.type) {
+    case 'word': return `word '${tok.value}'`;
+    case 'ident': return `identifier '${tok.value}'`;
+    case 'punct':
+      switch (tok.value) {
+        case '(': return 'left paren';
+        case ')': return 'right paren';
+        case ',': return 'comma';
+        case ';': return 'semicolon';
+        case '=': return 'assignment';
+        default: return 'punctuation';
+      }
+    default: return tok.type;
+  }
 }
