@@ -170,23 +170,31 @@ function parse(input, opts = {}) {
       });
     },
     INSERT_VALUES: () => {
-      let row, parseRow = (tok) => {
+      stmt.rows = [];
+      while (next(isLeftParen)) {
+        let values = [],
+            start = toks.cursor - 1;
+
+        next(isRightParen) || until(parseRow, values);
+        next(isComma);
+
+        stmt.rows.push({
+          __proto__: AST.Row.prototype,
+          values,
+          start,
+          end: toks.cursor,
+        });
+      }
+      function parseRow(tok, values) {
         if (isPunct(tok)) {
           wtf(tok, 'Unexpected punctuation ' + tok.value);
         }
-        row.push(tok.value);
+        values.push(tok.value);
         tok = toks.next();
-        if (isRightParen(tok)) return tok;
+        if (isRightParen(tok)) return values;
         if (!isComma(tok)) {
           wtf(tok, 'Expected a comma or right paren');
         }
-      };
-      stmt.rows = [];
-      while (next(isLeftParen)) {
-        row = [];
-        next(isRightParen) || until(parseRow);
-        stmt.rows.push(row);
-        next(isComma);
       }
     },
     DROP: ['TABLE'],
