@@ -1,0 +1,40 @@
+{
+  "name": "sql-ast",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": "aleclarson/sql-ast",
+  "description": "MySQL parser",
+  "devDependencies": {
+    "eslint": "^5.2.0",
+    "eslint-config-airbnb": "^17.0.0"
+  },
+  "eslintConfig": {
+    "extends": "airbnb",
+    "rules": {
+      "arrow-parens": 0,
+      "brace-style": 0,
+      "consistent-return": 0,
+      "default-case": 0,
+      "eqeqeq": 0,
+      "lines-between-class-members": 0,
+      "no-bitwise": 0,
+      "no-cond-assign": 0,
+      "no-constant-condition": 0,
+      "no-continue": 0,
+      "no-param-reassign": 0,
+      "no-plusplus": 0,
+      "no-sequences": 0,
+      "no-shadow": 0,
+      "no-underscore-dangle": 0,
+      "no-unused-expressions": 0,
+      "no-use-before-define": 0,
+      "object-curly-spacing": [2, "never"],
+      "one-var": 0,
+      "one-var-declaration-per-line": 0,
+      "operator-linebreak": 0,
+      "prefer-const": 0,
+      "prefer-template": 0,
+      "quotes": 0
+    }
+  }
+}
