@@ -125,24 +125,34 @@ function parse(input, opts = {}) {
 
         let attrs = {};
         while (tok = next(isWord)) {
-          let attr = uc(tok.value), val = true;
+          let attr = uc(tok.value),
+              start = tok.offset,
+              value = true;
+
           switch (attr) {
             case 'COLLATE':
-              val = next(isWord, true).value;
+              value = next(isWord, true).value;
               break;
             case 'DEFAULT':
               if (isWord(toks.peek(), 'NULL')) {
                 toks.next();
-                val = null;
+                value = null;
               } else {
-                val = next(isLiteral, true).value;
+                value = next(isLiteral, true).value;
               }
               break;
             case 'NOT':
               attr += '_' + uc(next(isWord, true).value);
               break;
           }
-          attrs[attr] = val;
+
+          attrs[attr] = {
+            __proto__: AST.Attribute.prototype,
+            name: attr.replace(/_/g, ' '),
+            value,
+            start,
+            end: toks.cursor,
+          };
         }
 
         next(isComma);
@@ -160,12 +170,22 @@ function parse(input, opts = {}) {
       until(tok => {
         if (eos(tok)) return false;
         if (isWord(tok)) {
-          let attr = uc(tok.value);
+          let attr = uc(tok.value),
+              start = tok.offset;
+
+          // Consecutive words make up an attribute name.
           while (tok = next(isWord)) {
             attr += '_' + uc(tok.value);
           }
+
           next(isAssign, true);
-          stmt.attrs[attr] = next(isWordOrLiteral, true).value;
+          stmt.attrs[attr] = {
+            __proto__: AST.Attribute.prototype,
+            name: attr.replace(/_/g, ' '),
+            value: next(isWordOrLiteral, true).value,
+            start,
+            end: toks.cursor,
+          };
         } else wtf(tok, 'Unexpected ' + inspect(tok));
       });
     },
@@ -318,6 +338,7 @@ function parse(input, opts = {}) {
 
   // Check for a flag in a statement. (eg: "IF EXISTS")
   function flag(stmt, name) {
+    let start = toks.cursor;
     if (~name.indexOf(' ')) {
       if (!until(words(name))) return;
       name = name.replace(/ /g, '_');
@@ -325,7 +346,13 @@ function parse(input, opts = {}) {
     else if (!next(is('word', name))) {
       return;
     }
-    stmt.attrs[name] = true;
+    stmt.attrs[name] = {
+      __proto__: AST.Attribute.prototype,
+      name: name.replace(/_/g, ' '),
+      value: true,
+      start,
+      end: toks.cursor,
+    };
   }
 
   // Find a matching token in the current statement.
