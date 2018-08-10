@@ -330,10 +330,10 @@ function parse(input, opts = {}) {
   }
 
   // Consume tokens until a value is returned by the predicate.
-  function until(pred) {
+  function until(pred, ...args) {
     let tok, res;
     while (tok = toks.next()) {
-      res = pred(tok);
+      res = pred(tok, ...args);
       if (res !== undefined) {
         if (res === false) toks.back(tok);
         return res;
