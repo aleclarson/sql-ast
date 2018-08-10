@@ -25,7 +25,8 @@ Object.assign(exports, AST);
 exports.lex =
 function lex(input) {
   let toks = new TokenStream(input);
-  return genArray(toks.next, toks);
+  while (toks.next());
+  return toks.array;
 };
 
 exports.parse =
@@ -53,7 +54,7 @@ function parse(input, opts = {}) {
 
         if (isWord(tok)) {
           let val = uc(tok.value),
-              start = tok.offset,
+              start = tok.start,
               isPrimary = val == 'PRIMARY',
               isUnique = isPrimary || val == 'UNIQUE';
 
@@ -101,7 +102,7 @@ function parse(input, opts = {}) {
               name,
               columns,
               start,
-              end: toks.cursor,
+              end: toks.curr().end,
             });
             return;
           }
@@ -114,7 +115,7 @@ function parse(input, opts = {}) {
         }
 
         let name = tok.value,
-            start = tok.offset,
+            start = tok.start,
             dataType = lc(next(isWord, true).value);
 
         // Skip the display width
@@ -126,7 +127,7 @@ function parse(input, opts = {}) {
         let attrs = {};
         while (tok = next(isWord)) {
           let attr = uc(tok.value),
-              start = tok.offset,
+              start = tok.start,
               value = true;
 
           switch (attr) {
@@ -151,7 +152,7 @@ function parse(input, opts = {}) {
             name: attr.replace(/_/g, ' '),
             value,
             start,
-            end: toks.cursor,
+            end: toks.curr().end,
           };
         }
 
@@ -162,7 +163,7 @@ function parse(input, opts = {}) {
           dataType,
           attrs,
           start,
-          end: toks.cursor,
+          end: toks.curr().end,
         });
       });
 
@@ -171,7 +172,7 @@ function parse(input, opts = {}) {
         if (eos(tok)) return false;
         if (isWord(tok)) {
           let attr = uc(tok.value),
-              start = tok.offset;
+              start = tok.start;
 
           // Consecutive words make up an attribute name.
           while (tok = next(isWord)) {
@@ -184,7 +185,7 @@ function parse(input, opts = {}) {
             name: attr.replace(/_/g, ' '),
             value: next(isWordOrLiteral, true).value,
             start,
-            end: toks.cursor,
+            end: toks.curr().end,
           };
         } else wtf(tok, 'Unexpected ' + inspect(tok));
       });
@@ -193,7 +194,7 @@ function parse(input, opts = {}) {
       stmt.rows = [];
       while (next(isLeftParen)) {
         let values = [],
-            start = toks.cursor - 1;
+            start = toks.curr().start;
 
         next(isRightParen) || until(parseRow, values);
         next(isComma);
@@ -202,7 +203,7 @@ function parse(input, opts = {}) {
           __proto__: AST.Row.prototype,
           values,
           start,
-          end: toks.cursor,
+          end: toks.curr().end,
         });
       }
       function parseRow(tok, values) {
@@ -240,7 +241,8 @@ function parse(input, opts = {}) {
         lockType = uc(tok.value);
         switch (lockType) {
           case 'WRITE':
-            toks.back(next(eos, true));
+            next(eos, true);
+            toks.back();
             break;
           case 'READ':
             if (tok = next(isWord)) {
@@ -278,7 +280,7 @@ function parse(input, opts = {}) {
     if (!tok) return stmts;
     if (isWord(tok)) {
       stmt = parseStatement(tok);
-      stmt.end = toks.cursor;
+      stmt.end = toks.curr().end;
       stmts.push(stmt);
     } else if (!eos(tok)) {
       break;
@@ -296,7 +298,7 @@ function parse(input, opts = {}) {
     stmt = {
       __proto__: AST.Statement.prototype,
       type: uc(tok.value),
-      start: tok.offset,
+      start: tok.start,
       end: null,
     };
     let what;
@@ -340,7 +342,7 @@ function parse(input, opts = {}) {
 
   // Check for a flag in a statement. (eg: "IF EXISTS")
   function flag(stmt, name) {
-    let start = toks.cursor;
+    let {start} = toks.peek();
     if (~name.indexOf(' ')) {
       if (!until(words(name))) return;
       name = name.replace(/ /g, '_');
@@ -353,13 +355,13 @@ function parse(input, opts = {}) {
       name: name.replace(/_/g, ' '),
       value: true,
       start,
-      end: toks.cursor,
+      end: toks.curr().end,
     };
   }
 
   // Find a matching token in the current statement.
   function find(pred) {
-    let tok, i = -1;
+    let tok, i = 0;
     while ((tok = toks.peek(++i)) && !eos(tok)) {
       if (pred(tok)) return tok;
     }
@@ -372,7 +374,7 @@ function parse(input, opts = {}) {
     while (tok = toks.next()) {
       res = pred(tok, ...args);
       if (res !== undefined) {
-        if (res === false) toks.back(tok);
+        if (res === false) toks.back();
         return res;
       }
     }
@@ -431,12 +433,6 @@ function oneOf(type, arr) {
     return (tok) => type.indexOf(uc(tok.value)) != -1;
   }
   return (tok) => tok.type == type && arr.indexOf(uc(tok.value)) != -1;
-}
-
-function genArray(fn, ctx) {
-  let val, arr = [];
-  while (val = fn.call(ctx)) arr.push(val);
-  return arr;
 }
 
 // For human-readable error messages
