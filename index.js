@@ -208,7 +208,7 @@ function parse(input, opts = {}) {
       }
       function parseRow(tok, values) {
         if (isPunct(tok)) {
-          wtf(tok, 'Unexpected punctuation ' + tok.value);
+          wtf(tok, 'Unexpected ' + inspect(tok));
         }
         values.push(tok.value);
         tok = toks.next();
