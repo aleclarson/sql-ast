@@ -113,8 +113,9 @@ function parse(input, opts = {}) {
           wtf(tok, 'Unexpected ' + inspect(tok));
         }
 
-        let name = tok.value;
-        let dataType = lc(next(isWord, true).value);
+        let name = tok.value,
+            start = tok.offset,
+            dataType = lc(next(isWord, true).value);
 
         // Skip the display width
         if (next(isLeftParen)) {
@@ -150,6 +151,8 @@ function parse(input, opts = {}) {
           name,
           dataType,
           attrs,
+          start,
+          end: toks.cursor,
         });
       });
 
