@@ -1,4 +1,4 @@
-# sql-ast v0.1.0
+# sql-ast v0.1.1
 
 The current goal of `sql-ast` is to parse the output of `mysqldump` into an AST.
 If anyone wants to expand the capability of this library, feel free to send some
