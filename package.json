@@ -9,11 +9,10 @@
     "lib"
   ],
   "devDependencies": {
-    "eslint": "^5.2.0",
-    "eslint-config-airbnb": "^17.0.0"
+    "eslint": "^5.2.0"
   },
   "eslintConfig": {
-    "extends": "airbnb",
+    "extends": "eslint:recommended",
     "rules": {
       "arrow-parens": 0,
       "brace-style": 0,
