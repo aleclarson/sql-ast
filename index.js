@@ -60,7 +60,7 @@ function parse(input, opts = {}) {
               isUnique = isPrimary || val == 'UNIQUE';
 
           if (isUnique) {
-            tok = toks.next();
+            tok = eof(toks.next());
             val = isWord(tok) ? uc(tok.value) : null;
           }
           if (val == 'KEY') {
@@ -76,21 +76,21 @@ function parse(input, opts = {}) {
 
                 // Prefix length
                 if (next(isLeftParen)) {
-                  let len = toks.next();
-                  if (len.type == 'number') {
+                  let len = eof(toks.next());
+                  if (isNumber(len)) {
                     column[1] = len.value;
                   } else wtf(len, 'Expected a number');
                   next(isRightParen, true);
                 }
 
-                tok = toks.next();
+                tok = eof(toks.next());
                 if (isRightParen(tok)) return true;
                 if (!isComma(tok)) {
                   wtf(tok, 'Expected a comma or paren');
                 }
               }
               else if (isComma(tok)) {
-                let tok = toks.peek();
+                let tok = eof(toks.peek());
                 if (!isWordOrIdent(tok)) {
                   wtf(tok, 'Unexpected ' + inspect(tok));
                 }
@@ -136,7 +136,8 @@ function parse(input, opts = {}) {
               value = next(isWord, true).value;
               break;
             case 'DEFAULT':
-              if (isNull(toks.peek())) {
+              tok = eof(toks.peek());
+              if (isNull(tok)) {
                 toks.next();
                 value = null;
               } else {
@@ -213,7 +214,7 @@ function parse(input, opts = {}) {
           wtf(tok, 'Unexpected ' + inspect(tok));
         }
         values.push(tok.value);
-        tok = toks.next();
+        tok = eof(toks.next());
         if (isRightParen(tok)) return values;
         if (!isComma(tok)) {
           wtf(tok, 'Expected a comma or right paren');
@@ -278,7 +279,9 @@ function parse(input, opts = {}) {
       let tok; while (tok = next(isWordOrIdent)) {
         let table = tok.value, lockType;
         tok = toks.next();
-        if (eos(tok) || !isWord(tok)) wtf(tok, 'Missing lock type');
+        if (!tok || eos(tok) || !isWord(tok)) {
+          wtf(tok, 'Missing lock type');
+        }
         lockType = uc(tok.value);
         switch (lockType) {
           case 'WRITE':
@@ -374,7 +377,7 @@ function parse(input, opts = {}) {
 
   // Check for a flag in a statement. (eg: "IF EXISTS")
   function flag(stmt, name) {
-    let {start} = toks.peek();
+    let {start} = eof(toks.peek());
     if (~name.indexOf(' ')) {
       if (!until(words(name))) return;
       name = name.replace(/ /g, '_');
@@ -393,11 +396,11 @@ function parse(input, opts = {}) {
 
   // Find a matching token in the current statement.
   function find(pred) {
-    let tok, i = 0;
-    while ((tok = toks.peek(++i)) && !eos(tok)) {
+    let i = 0; while (true) {
+      let tok = eof(toks.peek(++i));
+      if (eos(tok)) return null;
       if (pred(tok)) return tok;
     }
-    return null;
   }
 
   // Consume tokens until a value is returned by the predicate.
@@ -431,6 +434,11 @@ function parse(input, opts = {}) {
       return !required ? null : wtf(tok, 'Unexpected ' + inspect(tok));
     }
     return !required ? null : wtf(null, 'Unexpected EOF');
+  }
+
+  // Throw on unexpected EOF.
+  function eof(tok) {
+    return tok || wtf(null, 'Unexpected EOF');
   }
 };
 
