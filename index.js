@@ -190,6 +190,7 @@ function parse(input, opts = {}) {
         } else wtf(tok, 'Unexpected ' + inspect(tok));
       });
     },
+    INSERT: ['VALUES'],
     INSERT_VALUES() {
       stmt.rows = [];
       while (next(isLeftParen)) {
@@ -295,45 +296,36 @@ function parse(input, opts = {}) {
   //
 
   function parseStatement(tok) {
+
     stmt = {
       __proto__: AST.Statement.prototype,
       type: uc(tok.value),
       start: tok.start,
       end: null,
     };
-    let what;
+
+    let what, words;
     switch (stmt.type) {
-      case 'CREATE':
-        what = find(oneOf('word', stmtTypes.CREATE));
-        if (!what) wtf(tok, 'Invalid CREATE statement');
-        stmt.what = uc(what.value);
-        stmtTypes['CREATE_' + stmt.what]();
-        break;
-      case 'INSERT':
-        next(is('word', 'INTO'), true);
-        stmt.table = next(isWordOrIdent, true).value;
-        next(is('word', 'VALUES'), true);
-        stmtTypes.INSERT_VALUES();
-        break;
-      case 'DROP':
-        what = find(oneOf('word', stmtTypes.DROP));
-        if (!what) wtf(tok, 'Invalid DROP statement');
-        stmt.what = uc(what.value);
-        stmtTypes['DROP_' + stmt.what]();
-        break;
-      case 'LOCK':
-        what = next(oneOf('word', stmtTypes.LOCK));
-        if (!what) wtf(tok, 'Invalid LOCK statement');
-        stmt.what = uc(what.value);
-        stmtTypes['LOCK_' + stmt.what]();
-        break;
       case 'UNLOCK':
         what = next(oneOf('word', stmtTypes.LOCK));
         if (!what) wtf(tok, 'Invalid UNLOCK statement');
         stmt.what = uc(what.value);
         break;
 
-      default: wtf(tok, 'Unsupported statement ' + stmt.type);
+      case 'INSERT':
+        next(is('word', 'INTO'), true);
+        stmt.table = next(isWordOrIdent, true).value;
+        /* fallthrough */
+
+      default:
+        words = stmtTypes[stmt.type];
+        if (!words) wtf(tok, 'Unknown statement ' + stmt.type);
+
+        what = find(oneOf('word', words));
+        if (!what) wtf(tok, `Invalid ${stmt.type} statement`);
+
+        stmt.what = uc(what.value);
+        stmtTypes[stmt.type + '_' + stmt.what]();
     }
     tok = toks.next();
     if (tok && eos(tok)) return stmt;
