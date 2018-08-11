@@ -24,10 +24,10 @@ const isNull = is(NULL);
 const isWord = is(WORD);
 const isIdent = is(IDENT);
 const isPunct = is(PUNCT);
+const isValue = is([NULL, NUMBER, STRING, VARIABLE, WORD]);
 const isNumber = is(NUMBER);
 const isLiteral = is([STRING, NUMBER]);
 const isWordOrIdent = is([WORD, IDENT]);
-const isWordOrLiteral = is([WORD, STRING, NUMBER]);
 
 // Expose AST node types.
 Object.assign(exports, AST);
@@ -194,7 +194,7 @@ function parse(input, opts = {}) {
           stmt.attrs[attr] = {
             __proto__: AST.Attribute.prototype,
             name: attr.replace(/_/g, ' '),
-            value: next(isWordOrLiteral, true).value,
+            value: next(isValue, true).value,
             start,
             end: toks.curr().end,
           };
