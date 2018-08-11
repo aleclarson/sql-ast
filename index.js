@@ -20,13 +20,12 @@ const isLeftParen = is(PUNCT, '(');
 const isRightParen = is(PUNCT, ')');
 
 // Type checkers
-const isNull = is(NULL);
 const isWord = is(WORD);
 const isIdent = is(IDENT);
 const isPunct = is(PUNCT);
 const isValue = is([NULL, NUMBER, STRING, VARIABLE, WORD]);
 const isNumber = is(NUMBER);
-const isLiteral = is([STRING, NUMBER]);
+const isLiteral = is([NULL, NUMBER, STRING]);
 const isWordOrIdent = is([WORD, IDENT]);
 
 // Expose AST node types.
@@ -145,13 +144,7 @@ function parse(input, opts = {}) {
               value = next(isWord, true).value;
               break;
             case 'DEFAULT':
-              tok = eof(toks.peek());
-              if (isNull(tok)) {
-                toks.next();
-                value = null;
-              } else {
-                value = next(isLiteral, true).value;
-              }
+              value = next(isLiteral, true).value;
               break;
             case 'NOT':
               attr += '_' + uc(next(isWord, true).value);
