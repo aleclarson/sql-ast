@@ -219,6 +219,45 @@ function parse(input, opts = {}) {
         }
       }
     },
+    ALTER: ['TABLE'],
+    ALTER_TABLE() {
+      next(is('word', stmt.what), true);
+      stmt.name = next(isWordOrIdent, true).value;
+
+      // Parse the actions.
+      stmt.actions = [];
+      until(tok => {
+        if (!isWord(tok)) {
+          wtf(tok, 'Unexpected ' + inspect(tok));
+        }
+
+        let action = {
+          __proto__: AST.Action.prototype,
+          type: uc(tok.value),
+          start: tok.start,
+          end: null,
+        };
+
+        switch (action.type) {
+          case 'ENABLE':
+          case 'DISABLE':
+            action.what = next(is('word', 'KEYS'), true).value;
+            break;
+
+          default: wtf(tok, 'Unknown action type ' + action.type);
+        }
+
+        action.end = toks.curr().end;
+        stmt.actions.push(action);
+
+        if (tok = toks.next()) {
+          if (eos(tok)) return toks.back();
+          if (!isComma(tok)) {
+            wtf(tok, 'Expected a comma or semicolon');
+          }
+        }
+      });
+    },
     DROP: ['TABLE'],
     DROP_TABLE() {
       stmt.attrs = {};
