@@ -213,9 +213,7 @@ function parse(input, opts = {}) {
         });
       }
       function parseRow(tok, values) {
-        if (isPunct(tok)) {
-          wtf(tok, 'Unexpected ' + inspect(tok));
-        }
+        if (isPunct(tok)) unexpected(tok);
         values.push(tok.value);
         tok = eof(toks.next());
         if (isRightParen(tok)) return values;
@@ -334,7 +332,7 @@ function parse(input, opts = {}) {
     }
   }
 
-  next(tok => wtf(tok, 'Unexpected ' + inspect(tok)));
+  next(unexpected);
   return stmts;
 
   //
@@ -425,7 +423,7 @@ function parse(input, opts = {}) {
       if (tok.type == WORD && uc(tok.value) == arr[i++]) {
         if (i == arr.length) return true;
       } else if (i == 0) { return false;
-      } else wtf(tok, 'Unexpected ' + inspect(tok));
+      } else unexpected(tok);
     };
   }
 
@@ -434,7 +432,7 @@ function parse(input, opts = {}) {
     let tok = toks.peek();
     if (tok) {
       if (pred(tok)) return toks.next();
-      return !required ? null : wtf(tok, 'Unexpected ' + inspect(tok));
+      return !required ? null : unexpected(tok);
     }
     return !required ? null : wtf(null, 'Unexpected EOF');
   }
@@ -442,6 +440,11 @@ function parse(input, opts = {}) {
   // Throw on unexpected EOF.
   function eof(tok) {
     return tok || wtf(null, 'Unexpected EOF');
+  }
+
+  // Throw on unexpected token.
+  function unexpected(tok) {
+    wtf(tok, 'Unexpected ' + inspect(tok));
   }
 };
 
