@@ -1,24 +1,33 @@
 const TokenStream = require('./lib/token-stream');
 const AST = require('./lib/taxonomy');
 
+// Type names
+const NULL = 'null';
+const WORD = 'word';
+const IDENT = 'ident';
+const PUNCT = 'punct';
+const NUMBER = 'number';
+const STRING = 'string';
+const VARIABLE = 'variable';
+
 // End of statement
-const eos = is('punct', ';');
+const eos = is(PUNCT, ';');
 
 // Punctuation
-const isComma = is('punct', ',');
-const isAssign = is('punct', '=');
-const isLeftParen = is('punct', '(');
-const isRightParen = is('punct', ')');
+const isComma = is(PUNCT, ',');
+const isAssign = is(PUNCT, '=');
+const isLeftParen = is(PUNCT, '(');
+const isRightParen = is(PUNCT, ')');
 
 // Type checkers
-const isNull = is('null');
-const isWord = is('word');
-const isIdent = is('ident');
-const isPunct = is('punct');
-const isNumber = is('number');
-const isLiteral = is(['string', 'number']);
-const isWordOrIdent = is(['word', 'ident']);
-const isWordOrLiteral = is(['word', 'string', 'number']);
+const isNull = is(NULL);
+const isWord = is(WORD);
+const isIdent = is(IDENT);
+const isPunct = is(PUNCT);
+const isNumber = is(NUMBER);
+const isLiteral = is([STRING, NUMBER]);
+const isWordOrIdent = is([WORD, IDENT]);
+const isWordOrLiteral = is([WORD, STRING, NUMBER]);
 
 // Expose AST node types.
 Object.assign(exports, AST);
@@ -41,7 +50,7 @@ function parse(input, opts = {}) {
     CREATE_TABLE() {
       stmt.attrs = {};
       flag(stmt, 'TEMPORARY');
-      next(is('word', stmt.what), true);
+      next(is(WORD, stmt.what), true);
       flag(stmt, 'IF NOT EXISTS');
       stmt.name = next(isWordOrIdent, true).value;
 
@@ -223,7 +232,7 @@ function parse(input, opts = {}) {
     },
     ALTER: ['TABLE'],
     ALTER_TABLE() {
-      next(is('word', stmt.what), true);
+      next(is(WORD, stmt.what), true);
       stmt.name = next(isWordOrIdent, true).value;
 
       // Parse the actions.
@@ -243,7 +252,7 @@ function parse(input, opts = {}) {
         switch (action.type) {
           case 'ENABLE':
           case 'DISABLE':
-            action.what = next(is('word', 'KEYS'), true).value;
+            action.what = next(is(WORD, 'KEYS'), true).value;
             break;
 
           default: wtf(tok, 'Unknown action type ' + action.type);
@@ -264,7 +273,7 @@ function parse(input, opts = {}) {
     DROP_TABLE() {
       stmt.attrs = {};
       flag(stmt, 'TEMPORARY');
-      next(is('word', stmt.what), true);
+      next(is(WORD, stmt.what), true);
       flag(stmt, 'IF EXISTS');
       stmt.names = [
         next(isWordOrIdent, true).value,
@@ -350,13 +359,13 @@ function parse(input, opts = {}) {
     let what, words;
     switch (stmt.type) {
       case 'UNLOCK':
-        what = next(oneOf('word', stmtTypes.LOCK));
+        what = next(oneOf(WORD, stmtTypes.LOCK));
         if (!what) wtf(tok, 'Invalid UNLOCK statement');
         stmt.what = uc(what.value);
         break;
 
       case 'INSERT':
-        next(is('word', 'INTO'), true);
+        next(is(WORD, 'INTO'), true);
         stmt.table = next(isWordOrIdent, true).value;
         /* fallthrough */
 
@@ -364,7 +373,7 @@ function parse(input, opts = {}) {
         words = stmtTypes[stmt.type];
         if (!words) wtf(tok, 'Unknown statement ' + stmt.type);
 
-        what = find(oneOf('word', words));
+        what = find(oneOf(WORD, words));
         if (!what) wtf(tok, `Invalid ${stmt.type} statement`);
 
         stmt.what = uc(what.value);
@@ -382,7 +391,7 @@ function parse(input, opts = {}) {
       if (!until(words(name))) return;
       name = name.replace(/ /g, '_');
     }
-    else if (!next(is('word', name))) {
+    else if (!next(is(WORD, name))) {
       return;
     }
     stmt.attrs[name] = {
@@ -419,7 +428,7 @@ function parse(input, opts = {}) {
   function words(str) {
     let i = 0, arr = uc(str).split(' ');
     return (tok) => {
-      if (tok.type == 'word' && uc(tok.value) == arr[i++]) {
+      if (tok.type == WORD && uc(tok.value) == arr[i++]) {
         if (i == arr.length) return true;
       } else if (i == 0) { return false;
       } else wtf(tok, 'Unexpected ' + inspect(tok));
@@ -478,10 +487,10 @@ function oneOf(type, arr) {
 // For human-readable error messages
 function inspect(tok) {
   switch (tok.type) {
-    case 'word': return `word '${tok.value}'`;
-    case 'ident': return `identifier '${tok.value}'`;
-    case 'variable': return `variable '${tok.value}'`;
-    case 'punct':
+    case WORD: return `word '${tok.value}'`;
+    case IDENT: return `identifier '${tok.value}'`;
+    case VARIABLE: return `variable '${tok.value}'`;
+    case PUNCT:
       switch (tok.value) {
         case '(': return 'left paren';
         case ')': return 'right paren';
