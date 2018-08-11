@@ -11,6 +11,7 @@ const isLeftParen = is('punct', '(');
 const isRightParen = is('punct', ')');
 
 // Type checkers
+const isNull = is('null');
 const isWord = is('word');
 const isIdent = is('ident');
 const isPunct = is('punct');
@@ -135,7 +136,7 @@ function parse(input, opts = {}) {
               value = next(isWord, true).value;
               break;
             case 'DEFAULT':
-              if (isWord(toks.peek(), 'NULL')) {
+              if (isNull(toks.peek())) {
                 toks.next();
                 value = null;
               } else {
