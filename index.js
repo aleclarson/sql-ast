@@ -37,7 +37,7 @@ function parse(input, opts = {}) {
   // Statement parsers
   const stmtTypes = {
     CREATE: ['TABLE'],
-    CREATE_TABLE: () => {
+    CREATE_TABLE() {
       stmt.attrs = {};
       flag(stmt, 'TEMPORARY');
       next(is('word', stmt.what), true);
@@ -190,7 +190,7 @@ function parse(input, opts = {}) {
         } else wtf(tok, 'Unexpected ' + inspect(tok));
       });
     },
-    INSERT_VALUES: () => {
+    INSERT_VALUES() {
       stmt.rows = [];
       while (next(isLeftParen)) {
         let values = [],
@@ -219,7 +219,7 @@ function parse(input, opts = {}) {
       }
     },
     DROP: ['TABLE'],
-    DROP_TABLE: () => {
+    DROP_TABLE() {
       stmt.attrs = {};
       flag(stmt, 'TEMPORARY');
       next(is('word', stmt.what), true);
@@ -232,7 +232,7 @@ function parse(input, opts = {}) {
       }
     },
     LOCK: ['TABLES'],
-    LOCK_TABLES: () => {
+    LOCK_TABLES() {
       stmt.tables = [];
       let tok; while (tok = next(isWordOrIdent)) {
         let table = tok.value, lockType;
