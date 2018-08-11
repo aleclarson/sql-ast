@@ -50,7 +50,7 @@ function parse(input, opts = {}) {
       next(isLeftParen, true);
       until(tok => {
         if (eos(tok)) wtf(tok, 'Missing ) before ;');
-        if (isRightParen(tok)) return tok;
+        if (isRightParen(tok)) return true;
 
         if (isWord(tok)) {
           let val = uc(tok.value),
@@ -83,7 +83,7 @@ function parse(input, opts = {}) {
                 }
 
                 tok = toks.next();
-                if (isRightParen(tok)) return tok;
+                if (isRightParen(tok)) return true;
                 if (!isComma(tok)) {
                   wtf(tok, 'Expected a comma or paren');
                 }
