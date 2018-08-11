@@ -100,7 +100,7 @@ function parse(input, opts = {}) {
               else if (isComma(tok)) {
                 let tok = eof(toks.peek());
                 if (!isWordOrIdent(tok)) {
-                  wtf(tok, 'Unexpected ' + inspect(tok));
+                  wtf(tok, 'Expected a word or identifier');
                 }
               }
             });
@@ -120,7 +120,7 @@ function parse(input, opts = {}) {
           }
         }
         else if (!isIdent(tok)) {
-          wtf(tok, 'Unexpected ' + inspect(tok));
+          wtf(tok, 'Expected a word or identifier');
         }
 
         let name = tok.value,
@@ -174,24 +174,25 @@ function parse(input, opts = {}) {
       // Parse table options.
       until(tok => {
         if (eos(tok)) return false;
-        if (isWord(tok)) {
-          let attr = uc(tok.value),
-              start = tok.start;
+        if (!isWord(tok)) {
+          wtf(tok, 'Expected a word');
+        }
+        let attr = uc(tok.value),
+            start = tok.start;
 
-          // Consecutive words make up an attribute name.
-          while (tok = next(isWord)) {
-            attr += '_' + uc(tok.value);
-          }
+        // Consecutive words make up an attribute name.
+        while (tok = next(isWord)) {
+          attr += '_' + uc(tok.value);
+        }
 
-          next(isAssign, true);
-          stmt.attrs[attr] = {
-            __proto__: AST.Attribute.prototype,
-            name: attr.replace(/_/g, ' '),
-            value: next(isValue, true).value,
-            start,
-            end: toks.curr().end,
-          };
-        } else wtf(tok, 'Unexpected ' + inspect(tok));
+        next(isAssign, true);
+        stmt.attrs[attr] = {
+          __proto__: AST.Attribute.prototype,
+          name: attr.replace(/_/g, ' '),
+          value: next(isValue, true).value,
+          start,
+          end: toks.curr().end,
+        };
       });
     },
     INSERT: ['VALUES'],
@@ -232,7 +233,7 @@ function parse(input, opts = {}) {
       stmt.actions = [];
       until(tok => {
         if (!isWord(tok)) {
-          wtf(tok, 'Unexpected ' + inspect(tok));
+          wtf(tok, 'Expected a word');
         }
 
         let action = {
