@@ -471,6 +471,7 @@ function inspect(tok) {
   switch (tok.type) {
     case 'word': return `word '${tok.value}'`;
     case 'ident': return `identifier '${tok.value}'`;
+    case 'variable': return `variable '${tok.value}'`;
     case 'punct':
       switch (tok.value) {
         case '(': return 'left paren';
