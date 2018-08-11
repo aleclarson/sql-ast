@@ -16,6 +16,7 @@ const eos = is(PUNCT, ';');
 // Punctuation
 const isComma = is(PUNCT, ',');
 const isAssign = is(PUNCT, '=');
+const isPeriod = is(PUNCT, '.');
 const isLeftParen = is(PUNCT, '(');
 const isRightParen = is(PUNCT, ')');
 
@@ -25,7 +26,9 @@ const isIdent = is(IDENT);
 const isPunct = is(PUNCT);
 const isValue = is([NULL, NUMBER, STRING, VARIABLE, WORD]);
 const isNumber = is(NUMBER);
+const isString = is(STRING);
 const isLiteral = is([NULL, NUMBER, STRING]);
+const isVariable = is(VARIABLE);
 const isWordOrIdent = is([WORD, IDENT]);
 
 // Expose AST node types.
@@ -189,7 +192,7 @@ function parse(input, opts = {}) {
         stmt.attrs[attr] = {
           __proto__: AST.Attribute.prototype,
           name: attr.replace(/_/g, ' '),
-          value: next(isValue, true).value,
+          value: getValue(next(isValue, true)),
           start,
           end: toks.curr().end,
         };
@@ -308,6 +311,57 @@ function parse(input, opts = {}) {
         next(isComma);
       }
     },
+    SET_VARIABLES() {
+      toks.back();
+      stmt.variables = [];
+      until(tok => {
+        let name = '', {start} = tok;
+        while (true) {
+          name += lc(tok.value);
+          if (next(isPeriod)) {
+            name += '.';
+            tok = next(isWord, true);
+          } else break;
+        }
+        next(isAssign, true);
+        stmt.variables.push({
+          __proto__: AST.Variable.prototype,
+          name,
+          value: parseExpr(),
+          start,
+          end: toks.curr().end,
+        });
+      });
+    },
+    SET_NAMES() {
+      // Inherit charset rules
+      this.SET_CHARSET();
+
+      let tok = eof(toks.peek());
+      if (eos(tok)) return;
+
+      next(is(WORD, 'COLLATE'), true);
+      tok = eof(toks.next());
+
+      let val = getString(tok);
+      if (val == null) unexpected(tok);
+      stmt.collation = val;
+    },
+    SET_CHARSET() {
+      let tok = toks.next(),
+          val = tok.value;
+
+      if (isWord(tok)) {
+        val = lc(val);
+        if (val == 'default') {
+          stmt.default = true;
+          return;
+        }
+      } else if (!isString(tok)) {
+        wtf(tok, 'Expected a word or string');
+      }
+      stmt.value = val;
+    },
   };
 
   // Simplify stack traces by creating the syntax error early.
@@ -350,6 +404,35 @@ function parse(input, opts = {}) {
 
     let what, words;
     switch (stmt.type) {
+      case 'SET':
+        tok = eof(toks.next());
+        if (isWord(tok)) {
+          switch (what = uc(tok.value)) {
+            case 'CHARACTER':
+              next(is(WORD, 'SET'), true);
+              what += ' SET';
+              /* fallthrough */
+            case 'CHARSET':
+              stmt.what = what;
+              stmtTypes.SET_CHARSET();
+              break;
+            case 'NAMES':
+              stmt.what = what;
+              stmtTypes.SET_NAMES();
+              break;
+
+            default:
+              stmtTypes.SET_VARIABLES();
+          }
+        }
+        else if (isVariable(tok)) {
+          stmtTypes.SET_VARIABLES();
+        }
+        else {
+          wtf(tok, 'Expected a word or variable');
+        }
+        break;
+
       case 'UNLOCK':
         what = next(oneOf(WORD, stmtTypes.LOCK));
         if (!what) wtf(tok, 'Invalid UNLOCK statement');
@@ -374,6 +457,24 @@ function parse(input, opts = {}) {
     tok = toks.next();
     if (tok && eos(tok)) return stmt;
     wtf(tok, 'Missing semicolon');
+  }
+
+  function parseExpr() {
+    let tok = eof(toks.next());
+    if (isVariable(tok)) {
+      return {
+        __proto__: AST.Variable.prototype,
+        name: lc(tok.value),
+        start: tok.start,
+        end: tok.end,
+      };
+    }
+    return {
+      __proto__: AST.Literal.prototype,
+      value: getValue(tok),
+      start: tok.start,
+      end: tok.end,
+    };
   }
 
   // Check for a flag in a statement. (eg: "IF EXISTS")
@@ -454,6 +555,18 @@ function lc(str) {
 
 function uc(str) {
   return str.toUpperCase();
+}
+
+function getValue(tok) {
+  return isWord(tok) ? lc(tok.value)
+    : isLiteral(tok) ? tok.value
+    : undefined;
+}
+
+function getString(tok) {
+  return isWord(tok) ? lc(tok.value)
+    : isString(tok) ? tok.value
+    : null;
 }
 
 function is(type, value) {
