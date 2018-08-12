@@ -282,6 +282,7 @@ function parse(input, opts = {}) {
     },
     LOCK: ['TABLES'],
     LOCK_TABLES() {
+      toks.next();
       stmt.tables = [];
       let tok; while (tok = next(isWordOrIdent)) {
         let table = tok.value, lockType;
