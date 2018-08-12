@@ -9,6 +9,7 @@ const PUNCT = 'punct';
 const NUMBER = 'number';
 const STRING = 'string';
 const VARIABLE = 'variable';
+const VERSION = 'version';
 
 // End of statement
 const eos = is(PUNCT, ';');
@@ -45,6 +46,9 @@ exports.parse =
 function parse(input, opts = {}) {
   const toks = new TokenStream(input);
   const stmts = [];
+
+  // The minimum required version to use the next node(s).
+  let version = -1;
 
   // Statement parsers
   const stmtTypes = {
@@ -158,6 +162,7 @@ function parse(input, opts = {}) {
             __proto__: AST.Attribute.prototype,
             name: attr.replace(/_/g, ' '),
             value,
+            version,
             start,
             end: toks.curr().end,
           };
@@ -377,13 +382,14 @@ function parse(input, opts = {}) {
       stmt = parseStatement(tok);
       stmt.end = toks.curr().end;
       stmts.push(stmt);
-    } else if (!eos(tok)) {
-      break;
+    }
+    else if (tok.type == VERSION) {
+      version = tok.value;
+    }
+    else if (!eos(tok)) {
+      unexpected(tok);
     }
   }
-
-  next(unexpected);
-  return stmts;
 
   //
   // Helpers
@@ -394,6 +400,7 @@ function parse(input, opts = {}) {
     stmt = {
       __proto__: AST.Statement.prototype,
       type: uc(tok.value),
+      version,
       start: tok.start,
       end: null,
     };
@@ -450,6 +457,7 @@ function parse(input, opts = {}) {
         stmt.what = uc(what.value);
         stmtTypes[stmt.type + '_' + stmt.what]();
     }
+
     tok = toks.next();
     if (tok && eos(tok)) return stmt;
     wtf(tok, 'Missing semicolon');
