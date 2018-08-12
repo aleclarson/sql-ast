@@ -311,7 +311,7 @@ function parse(input, opts = {}) {
           table,
           lockType,
         ]);
-        return lastItem();
+        if (lastItem()) break;
       }
     },
     SET_VARIABLES() {
