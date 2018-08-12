@@ -207,6 +207,7 @@ function parse(input, opts = {}) {
     },
     INSERT: ['VALUES'],
     INSERT_VALUES() {
+      toks.next();
       stmt.rows = [];
       until(tok => {
         if (!isLeftParen(tok)) {
