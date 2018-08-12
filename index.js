@@ -463,7 +463,7 @@ function parse(input, opts = {}) {
         stmtTypes[stmt.type + '_' + stmt.what]();
     }
 
-    tok = toks.next();
+    tok = next();
     if (tok && eos(tok)) return stmt;
     wtf(tok, 'Missing semicolon');
   }
