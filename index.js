@@ -338,7 +338,7 @@ function parse(input, opts = {}) {
       // Inherit charset rules
       this.SET_CHARSET();
 
-      let tok = eof(toks.peek());
+      let tok = eof(peek());
       if (eos(tok)) return;
 
       next(is(WORD, 'COLLATE'), true);
@@ -512,7 +512,7 @@ function parse(input, opts = {}) {
   // Consume tokens until a value is returned by the predicate.
   function until(pred, ...args) {
     let tok, res;
-    while (tok = toks.next()) {
+    while (tok = next()) {
       res = pred(tok, ...args);
       if (res !== undefined) {
         if (res === false) toks.back();
@@ -532,21 +532,55 @@ function parse(input, opts = {}) {
     };
   }
 
-  // Return the next token if it matches the predicate.
-  function next(pred, required) {
-    let tok = toks.peek();
-    if (tok) {
-      if (pred(tok)) return toks.next();
-      return !required ? null : unexpected(tok);
+  // Peek with a predicate. And skip version tokens.
+  function peek(pred, offset = 1) {
+    let dir = offset > 0 ? 1 : -1;
+    let tok, i = dir;
+    while (true) {
+      if (tok = toks.peek(i)) {
+        if (tok.type == VERSION) {
+          offset += dir;
+        }
+        if (i != offset) {
+          i += dir;
+          continue;
+        }
+        if (!pred || pred(tok)) {
+          return tok;
+        }
+      }
+      return null;
     }
-    return !required ? null : wtf(null, 'Unexpected EOF');
+  }
+
+  // Return the next token if it matches the predicate.
+  // And skip version tokens.
+  function next(pred, required) {
+    let tok; while (true) {
+      if (tok = toks.next()) {
+        if (tok.type == VERSION) {
+          version = tok.value;
+          continue;
+        }
+        if (!pred || pred(tok)) {
+          return tok;
+        }
+        if (required) {
+          unexpected(tok);
+        }
+        toks.back();
+      }
+      else if (required) {
+        wtf(null, 'Unexpected EOF');
+      }
+      return null;
+    }
   }
 
   // Throw when no comma nor semicolon is next.
   // Return true if semicolon, else undefined.
   function lastItem() {
-    let tok = eof(toks.peek());
-    if (eos(tok)) return true;
+    if (peek(eos)) return true;
     if (!next(isComma)) {
       wtf(tok, 'Expected a comma or semicolon');
     }
