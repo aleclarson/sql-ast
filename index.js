@@ -135,9 +135,9 @@ function parse(input, opts = {}) {
             start = tok.start,
             dataType = lc(next(isWord, true).value);
 
-        // Skip the display width
+        let displayWidth;
         if (next(isLeftParen)) {
-          next(isNumber, true);
+          displayWidth = next(isNumber, true).value;
           next(isRightParen, true);
         }
 
@@ -175,6 +175,7 @@ function parse(input, opts = {}) {
           __proto__: AST.Column.prototype,
           name,
           dataType,
+          displayWidth,
           attrs,
           start,
           end: toks.curr().end,
