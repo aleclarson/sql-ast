@@ -221,7 +221,7 @@ function parse(input, opts = {}) {
         return lastItem();
       });
       function parseRow(tok, values) {
-        if (isPunct(tok)) unexpected(tok);
+        if (isPunct(tok)) wtf(tok);
         values.push(tok.value);
         tok = eof(toks.next());
         if (isRightParen(tok)) return values;
@@ -345,7 +345,7 @@ function parse(input, opts = {}) {
       tok = eof(toks.next());
 
       let val = getString(tok);
-      if (val == null) unexpected(tok);
+      if (val == null) wtf(tok);
       stmt.collation = val;
     },
     SET_CHARSET() {
@@ -368,6 +368,7 @@ function parse(input, opts = {}) {
   // Simplify stack traces by creating the syntax error early.
   let err = new SyntaxError();
   function wtf(tok, msg) {
+    if (!msg) msg = 'Unexpected ' + inspect(tok);
     if (opts.debug) {
       err = new SyntaxError(msg);
       Error.captureStackTrace(err, wtf);
@@ -386,8 +387,8 @@ function parse(input, opts = {}) {
     else if (tok.type == VERSION) {
       version = tok.value;
     }
-    else if (!eos(tok)) {
-      unexpected(tok);
+    else {
+      eos(tok) || wtf(tok);
     }
   }
 
@@ -528,7 +529,7 @@ function parse(input, opts = {}) {
       if (tok.type == WORD && uc(tok.value) == arr[i++]) {
         if (i == arr.length) return true;
       } else if (i == 0) { return false;
-      } else unexpected(tok);
+      } else wtf(tok);
     };
   }
 
@@ -565,10 +566,8 @@ function parse(input, opts = {}) {
         if (!pred || pred(tok)) {
           return tok;
         }
-        if (required) {
-          unexpected(tok);
-        }
-        toks.back();
+        if (required) wtf(tok);
+        else toks.back();
       }
       else if (required) {
         wtf(null, 'Unexpected EOF');
@@ -589,11 +588,6 @@ function parse(input, opts = {}) {
   // Throw on unexpected EOF.
   function eof(tok) {
     return tok || wtf(null, 'Unexpected EOF');
-  }
-
-  // Throw on unexpected token.
-  function unexpected(tok) {
-    wtf(tok, 'Unexpected ' + inspect(tok));
   }
 };
 
