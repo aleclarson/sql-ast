@@ -201,20 +201,20 @@ function parse(input, opts = {}) {
     INSERT: ['VALUES'],
     INSERT_VALUES() {
       stmt.rows = [];
-      while (next(isLeftParen)) {
-        let values = [],
-            start = toks.curr().start;
-
+      until(tok => {
+        if (!isLeftParen(tok)) {
+          wtf(tok, 'Expected a left paren');
+        }
+        let values = [];
         next(isRightParen) || until(parseRow, values);
-        next(isComma);
-
         stmt.rows.push({
           __proto__: AST.Row.prototype,
           values,
-          start,
+          start: tok.start,
           end: toks.curr().end,
         });
-      }
+        return lastItem();
+      });
       function parseRow(tok, values) {
         if (isPunct(tok)) unexpected(tok);
         values.push(tok.value);
@@ -255,13 +255,7 @@ function parse(input, opts = {}) {
 
         action.end = toks.curr().end;
         stmt.actions.push(action);
-
-        if (tok = toks.next()) {
-          if (eos(tok)) return toks.back();
-          if (!isComma(tok)) {
-            wtf(tok, 'Expected a comma or semicolon');
-          }
-        }
+        return lastItem();
       });
     },
     DROP: ['TABLE'],
@@ -275,6 +269,7 @@ function parse(input, opts = {}) {
       ];
       let tok; while (tok = next(isWordOrIdent)) {
         stmt.names.push(tok.value);
+        if (lastItem()) break;
       }
     },
     LOCK: ['TABLES'],
@@ -308,7 +303,7 @@ function parse(input, opts = {}) {
           table,
           lockType,
         ]);
-        next(isComma);
+        return lastItem();
       }
     },
     SET_VARIABLES() {
@@ -331,6 +326,7 @@ function parse(input, opts = {}) {
           start,
           end: toks.curr().end,
         });
+        return lastItem();
       });
     },
     SET_NAMES() {
@@ -536,6 +532,16 @@ function parse(input, opts = {}) {
       return !required ? null : unexpected(tok);
     }
     return !required ? null : wtf(null, 'Unexpected EOF');
+  }
+
+  // Throw when no comma nor semicolon is next.
+  // Return true if semicolon, else undefined.
+  function lastItem() {
+    let tok = eof(toks.peek());
+    if (eos(tok)) return true;
+    if (!next(isComma)) {
+      wtf(tok, 'Expected a comma or semicolon');
+    }
   }
 
   // Throw on unexpected EOF.
