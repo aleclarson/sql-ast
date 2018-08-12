@@ -22,6 +22,7 @@ const isLeftParen = is(PUNCT, '(');
 const isRightParen = is(PUNCT, ')');
 
 // Type checkers
+const isNull = is(NULL);
 const isWord = is(WORD);
 const isIdent = is(IDENT);
 const isPunct = is(PUNCT);
@@ -154,7 +155,8 @@ function parse(input, opts = {}) {
               value = next(isLiteral, true).value;
               break;
             case 'NOT':
-              attr += '_' + uc(next(isWord, true).value);
+              next(isNull, true);
+              attr += '_NULL';
               break;
           }
 
