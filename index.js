@@ -298,14 +298,12 @@ function parse(input, opts = {}) {
             toks.back();
             break;
           case 'READ':
-            if (tok = next(isWord)) {
-              let val = uc(tok.value);
-              lockType += '_' + val;
-              if (val != 'LOCAL') {
-                wtf(tok, 'Invalid lock type ' + lockType);
-              }
-            }
-            break;
+            tok = next(isWord);
+            if (!tok) break;
+            var val = uc(tok.value);
+            lockType += '_' + val;
+            if (val == 'LOCAL') break;
+            /* fallthrough */
 
           default: wtf(tok, 'Invalid lock type ' + lockType);
         }
